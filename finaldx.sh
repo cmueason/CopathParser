@@ -13,7 +13,7 @@ echo "Calling perl to change all \\r to \\r\\n (newlines).."
 perl -ne 's/\r/\r\n/g; s/Gross Description/\nGrossDescription/; print;' < $myfile > .mytemp 
 
 echo "Calling ruby to process text file and generate csv output.txt.."
-ruby process.rb .mytemp > output.csv
+ruby finaldx.rb .mytemp > output.csv
 
 echo "Please take a peek at the output:"
 echo "---"
