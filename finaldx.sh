@@ -15,9 +15,10 @@ perl -ne 's/\r/\r\n/g; s/Gross Description/\nGrossDescription/; print;' < $myfil
 echo "Calling ruby to process text file and generate csv output.txt.."
 ruby finaldx.rb .mytemp > output.csv
 
+echo "---"
 echo "Please take a peek at the output:"
 echo "---"
-head -n 7 output.csv | tail -n 5
+head -n 6 output.csv | tail -n 5
 
 echo "Cleaning up.."
 rm -f .mytemp

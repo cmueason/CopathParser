@@ -2,7 +2,6 @@
 
 if (ARGV.length>0)
   $fileName = ARGV[0]
-  puts($fileName) 
 else
   puts("Input file name needed!")
   exit(0)
