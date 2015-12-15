@@ -26,7 +26,7 @@ while ($line = fileObj.gets)
   end 
 
   if ($state == 1) 
-    if (not ($line =~ /(Client)|(MRN)|(Location)|(Age:)|(Signed By)|(M\.D\.)/)) or ($line.length<10)
+    if (not ($line =~ /(Client)|(MRN)|(Location)|(Age:)|(Signed By)|(M\.D\.)/)) or ($line.length<=3)
       @mylist.push($line.gsub(/\n/," ").gsub(/\r/," ").gsub(/\t/," "))
     end
   end
