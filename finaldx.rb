@@ -37,7 +37,7 @@ while ($line = fileObj.gets)
 
   if ($state == 0) and (@mylist.length>0)
     $finaldx =  @mylist.join(" ").gsub(/\s+/," ").gsub(/^[\-\.\)=\s]+/,"").gsub(/^\s+/,"").gsub(/\-+/,"-")
-    puts($caseno + "\t\"" + $finaldx + "\"")
+    puts($caseno + "\t" + $finaldx)
     @mylist = []
   end
 
