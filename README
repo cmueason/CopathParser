@@ -7,6 +7,6 @@ Goal: parser for parsing pdf output by copath for viewing in Excel
 - finaldx.rb
 
 2) Extracting many fields from copath query
-- first, convert to txt using pdf2txt.rb
-- then use txt as input file to processfile.rb
+- first, convert to txt using copathPDF2CSV.rb
+- then use txt as input file to copathcase.rb
 
