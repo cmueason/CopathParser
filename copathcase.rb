@@ -6,19 +6,19 @@ SEP="\t"
 
 class CopathCase
   attr_accessor :caseno, :gender, :race, :age, :birthday, :client, :mrn, :signoutdate,
-    :accessiondate, :name, :submitting, :signedby, :location, :finaldx, :grossdx
+    :accessiondate, :name, :submitting, :signedby, :location, :finaldx, :grossdx, :interp
 
   SHORTSTRING = false
 
   def initialize(caseno)
     @caseno = caseno
-    @gender = @race = @age = @birthday = @client = @mrn = @signoutdate = @accessiondate = @name = @submitting = @signedby = @location = @finaldx =  @grossdx = ""
+    @gender = @race = @age = @birthday = @client = @mrn = @signoutdate = @accessiondate = @name = @submitting = @signedby = @location = @finaldx =  @grossdx = @interp = ""
   end
 
   def toString(sep=SEP)    
     list = [@caseno,@accessiondate, @signoutdate, @name, @mrn,
             @gender, @race, @age, @birthday, @client, @submitting, 
-            @signedby, @location, @finaldx.gsub(/^[ -]+/,""), @grossdx]
+            @signedby, @location, @finaldx.gsub(/^[ -]+/,""), @grossdx, @interp]
     if SHORTSTRING
       list = list.map { |x| x[0..20] }     
     end 
@@ -28,9 +28,17 @@ class CopathCase
 end
 
 
-def processfile(inputFile, outputFile="")
-  puts "sep="+SEP
-  puts ["CaseNo","AccessionDate","SignoutDate","Name","MRN","Gender","Race","Age","Birthday","Client","Submitting","SignedBy","Location","FinalDx","GrossDx"].join(SEP)
+def processfile(inputFile, outputFile, bExcel = false)
+  if bExcel
+    f = File.new(outputFile.gsub(/.csv$/,".excel.csv"),"w")
+  else 
+    f = File.new(outputFile,"w")
+  end
+
+  if bExcel
+    f.write("sep="+SEP+"\n")
+  end
+  f.write ["CaseNo","AccessionDate","SignoutDate","Name","MRN","Gender","Race","Age","Birthday","Client","Submitting","SignedBy","Location","FinalDx","GrossDx","Interp"].join(SEP) + "\n"
  
   filename = inputFile
   file = File.open(filename, "r") 
@@ -47,9 +55,9 @@ def processfile(inputFile, outputFile="")
 
     # removing selection criteria
     if not selcriteria
-      selcriteria = (line =~ /Selection Criteria: /)        
+      selcriteria = (line =~ /Selection Crite/)        
     end
-    if selcriteria and (line =~ /S\d\d-\d+/)
+    if selcriteria and (line =~ /(S|PO)\d\d-\d+/)
       selcriteria = false
     end
 
@@ -57,63 +65,69 @@ def processfile(inputFile, outputFile="")
   
     # detect sections
     if not selcriteria
-      if (m = /^\s*(?<caseno>S\d\d-\d+)/.match(line))
+      if (m = /^\s*(?<caseno>(S|PO)\d\d-\d+)  /.match(line))
         if not currentcase   # current case is empty, so must be new case
           # matches a new case, might just be a new page, might be a new case, might be a first case
           currentcase = CopathCase.new(m[:caseno])
         else # not new case, either a continuation or a different case
           if currentcase.caseno != m[:caseno]   # current case becomes a different case
-            puts currentcase.toString()
+            f.write currentcase.toString() + "\n"
             currentcase = CopathCase.new(m[:caseno])            
           end
         end
         curr_section = :case        
       end
-      if (m = /Accession Date: (?<date>\d+\/\d+\/\d+)/.match(line))
+      if (m = /Accession Date:\s*(?<date>\d+\/\d+\/\d+)/.match(line))
         currentcase.accessiondate = m[:date]
         curr_section = :case        
       end
   
-      if (m = /Signout Date: (?<date>\d+\/\d+\/\d+)/.match(line))
+      if (m = /Signout Date:\s*(?<date>\d+\/\d+\/\d+)/.match(line))
         currentcase.signoutdate = m[:date]
         curr_section = :case        
       end
   
-      if (m = /Gender: (?<gender>\S+)/.match(line))
+      if (m = /Gender:\s*(?<gender>\S+)/.match(line))
         currentcase.gender = m[:gender]
         curr_section = :case        
       end
   
-      if (m = /Race: (?<race>.+)\s*Age/.match(line))
+      if (m = /Race:\s*(?<race>.+)\s*Age/.match(line))
         currentcase.race = m[:race]
       end
   
-      if (m = /Age: (?<birthdate>\d+\/\d+\/\d+)\s+\(\s+(?<age>\d+)\s+\)/.match(line))
+      if (m = /Age:\s*(?<birthdate>\d+\/\d+\/\d+)\s+\(\s+(?<age>\d+)\s+\)/.match(line))
         currentcase.age = m[:age]
         currentcase.birthday = m[:birthdate]
       end
   
-      if (m = /Client: (?<client>.*+)$/.match(line))
+      if (m = /Client:\s*(?<client>.*+)$/.match(line))
         currentcase.client = m[:client]
       end
   
-      if (m = /MRN: (?<mrn>\d+)/.match(line))
+      if (m = /MRN:\s*(?<mrn>\d+)/.match(line))
         currentcase.mrn = m[:mrn]
       end
 
-      if (m = /Patient Name: (?<name>.*)\s{2}/.match(line))
+      if (m = /Patient:\s*(?<name>.*)(\s{2}|$)/.match(line))
+        currentcase.name = m[:name].gsub(/\t/,"").gsub(/\s+$/,"")
+      end
+      if (m = /Patient Name:\s*(?<name>.*)(\s{2}|$)/.match(line))
         currentcase.name = m[:name].gsub(/\t/,"").gsub(/\s+$/,"")
       end
 
-      if (m = /Submitting: (?<name>.*)\s+Signed/.match(line))
+      if (m = /Submitting:\s*(?<name>.*)(\s{2}|$)/.match(line))
         currentcase.submitting = m[:name].gsub(/\t/,"").gsub(/\s+$/,"")
       end
 
-      if (m = /Signed By: (?<name>.*)\s{2}/.match(line))
+      if (m = /Primary Pathologist:\s*(?<name>.*)(\s{2}|$)/.match(line))
+        currentcase.signedby = m[:name].gsub(/\t/,"").gsub(/\s+$/,"")
+      end
+      if (m = /Signed By:\s*(?<name>.*)(\s{2}|$)/.match(line))
         currentcase.signedby = m[:name].gsub(/\t/,"").gsub(/\s+$/,"")
       end
 
-      if (m = /Location: (?<location>.*)$/.match(line))
+      if (m = /Location:\s*(?<location>.*)$/.match(line))
         currentcase.location = m[:location]
       end
 
@@ -122,6 +136,8 @@ def processfile(inputFile, outputFile="")
         curr_section = :finaldx        
       elsif line =~ /Gross Description/
         curr_section = :grossdx
+      elsif line =~ /Interpretation/i
+        curr_section = :interpretation
       end     
 
       if (prev_section == curr_section) 
@@ -137,7 +153,12 @@ def processfile(inputFile, outputFile="")
         myline = line.gsub(/^\s*/,"").gsub(/\s*$/,"").gsub("\n","").gsub("\r","")   
         currentcase.grossdx += myline.gsub(/^\s*/,"").gsub(/\s*$/,"").gsub("\n","").gsub("\r","").gsub(/^-\s*/,"")
       end  
-       
+
+      if prev_section == :interpretation and curr_section == :interpretation
+        myline = line.gsub(/^\s*/,"").gsub(/\s*$/,"").gsub("\n","").gsub("\r","")   
+        currentcase.interp += myline.gsub(/^\s*/,"").gsub(/\s*$/,"").gsub("\n","").gsub("\r","").gsub(/^-\s*/,"")
+      end  
+      
     end
  
     # turning multiple blank lines into one blank line
@@ -154,10 +175,8 @@ def processfile(inputFile, outputFile="")
       end
     end
   end
-  puts currentcase.toString()
+  f.write currentcase.toString()+"\n"
+  f.close
 end
 
-
-### TEST ###
-processfile(ARGV[0])
 
